@@ -192,6 +192,9 @@ configure_file(configuration/root_directory.h.in configuration/root_directory.h)
 include_directories(${CMAKE_BINARY_DIR}/configuration)
 
 # first create relevant static libraries requried for other projects
+add_library(RENDERER "src/Renderer.cpp")
+set(LIBS ${LIBS} RENDERER)
+
 add_library(STB_IMAGE "src/stb_image.cpp")
 set(LIBS ${LIBS} STB_IMAGE)
 

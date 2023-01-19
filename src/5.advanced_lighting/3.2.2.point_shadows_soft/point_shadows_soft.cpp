@@ -1,3 +1,5 @@
+#if  0
+
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include <stb_image.h>
@@ -36,6 +38,11 @@ bool firstMouse = true;
 // timing
 float deltaTime = 0.0f;
 float lastFrame = 0.0f;
+
+//Question:
+//1.几何着色器  顶点属性块（接口块 不影响GL指令调用）
+//2.CubeMap接入？
+
 
 int main()
 {
@@ -421,3 +428,5 @@ unsigned int loadTexture(char const * path)
 
     return textureID;
 }
+
+#endif 

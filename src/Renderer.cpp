@@ -1,4 +1,4 @@
-#include "Renderer.h"
+#include <Renderer/Renderer.h>
 
 #include <iostream>
 #include <functional>
@@ -187,6 +187,59 @@ void Renderer::bindVertexArrayObject(uint32_t vao)
     glBindVertexArray(vao);
 }
 
+void Renderer::createShadowFrameBuffer(uint32_t& fbHandle, uint32_t& texHandle, int width, int height)
+{
+    glGenFramebuffers(1, &fbHandle);
+    // create depth texture
+    glGenTextures(1, &texHandle);
+    glBindTexture(GL_TEXTURE_2D, texHandle);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, width, height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+    float borderColor[] = { 1.0, 1.0, 1.0, 1.0 };
+    glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
+    // attach depth texture as FBO's depth buffer
+    glBindFramebuffer(GL_FRAMEBUFFER, fbHandle);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, texHandle, 0);
+    glDrawBuffer(GL_NONE);
+    glReadBuffer(GL_NONE);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
+
+void Renderer::createShadowCubeFrameBuffer(uint32_t& fbHandle, uint32_t& texHandle, int width, int height)
+{
+    glGenFramebuffers(1, &fbHandle);
+    // create depth cubemap texture
+    glGenTextures(1, &texHandle);
+    glBindTexture(GL_TEXTURE_CUBE_MAP, texHandle);
+    for (unsigned int i = 0; i < 6; ++i)
+        glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_DEPTH_COMPONENT, width, height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+    // attach depth texture as FBO's depth buffer
+    glBindFramebuffer(GL_FRAMEBUFFER, fbHandle);
+    glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, texHandle, 0);
+    glDrawBuffer(GL_NONE);
+    glReadBuffer(GL_NONE);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
+
+void Renderer::bindFBufferViewRect(uint32_t& fbHandle, uint16_t x, uint16_t y, uint16_t width, uint16_t height)
+{
+    glBindFramebuffer(GL_FRAMEBUFFER, fbHandle);
+    glViewport(x, y, width, height);
+}
+
+void Renderer::unbindFBuffer()
+{
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
+
 void Renderer::unBindVertexArrayObject()
 {
     glBindVertexArray(0);
@@ -202,9 +255,15 @@ void Renderer::bindTexture(uint32_t texType, uint32_t texId)
     glBindTexture(texType, texId);
 }
 
-void Renderer::drawTriangle(int vtxCount)
+void Renderer::activeAndBindTexture(uint32_t texEnum, uint32_t texType, uint32_t texId)
 {
-    glDrawArrays(GL_TRIANGLES, 0, vtxCount);
+    glActiveTexture(texEnum);
+    glBindTexture(texType, texId);
+}
+
+void Renderer::drawTriangle(uint32_t triType ,int vtxCount)
+{
+    glDrawArrays(triType, 0, vtxCount);
 }
 
 void Renderer::onTimeUpdate()
@@ -214,15 +273,20 @@ void Renderer::onTimeUpdate()
     m_lastTime = currentTime;
 }
 
+float Renderer::getCurrentTime()
+{
+    return m_lastTime;
+}
+
 void Renderer::setClearFlag(uint8_t flag, uint32_t rgba, float depth, uint32_t stencil)
 {
     uint32_t glFlag = 0x00000000;
     if (flag & 0x01) //ÓÐclearcolor±ê¼Ç
     {
         glFlag |= GL_COLOR_BUFFER_BIT;
-        float red = (rgba & 0xff000000) >> 6;    red /= 255.0;
-        float green = (rgba & 0x00ff0000) >> 4;    green /= 255.0;
-        float blue = (rgba & 0x0000ff00) >> 2;    blue /= 255.0;
+        float red = (rgba & 0xff000000) >> 24;   red /= 255.0f;
+        float green = (rgba & 0x00ff0000) >> 16;    green /= 255.0;
+        float blue = (rgba & 0x0000ff00) >> 8;    blue /= 255.0;
         float alpha = (rgba & 0x000000ff) >> 0;    alpha /= 255.0;
         glClearColor(red, green, blue, alpha);
     }
@@ -246,11 +310,18 @@ void Renderer::setClearFlag(uint8_t flag, uint32_t rgba, float depth, uint32_t s
 }
 
 
-void Renderer::createShader(std::string str, std::string vertex, std::string frag)
+void Renderer::createShader(std::string str, std::string vertex, std::string frag, std::string geometry)
 {
     if (!m_shaderMap[str])
     {
-        m_shaderMap[str] = std::make_shared<Shader>(vertex.c_str(), frag.c_str());
+        if (geometry.size() == 0)
+        {
+            m_shaderMap[str] = std::make_shared<Shader>(vertex.c_str(), frag.c_str());
+        }
+        else
+        {
+            m_shaderMap[str] = std::make_shared<Shader>(vertex.c_str(), frag.c_str(), geometry.c_str());
+        }
     }
 }
 
@@ -259,7 +330,7 @@ std::shared_ptr<Shader> Renderer::getShader(std::string str)
     return m_shaderMap[str];
 }
 
-uint32_t Renderer::loadTexture(char const* path)
+uint32_t Renderer::loadTexture(char const* path, bool gammaCorrection)
 {
     unsigned int textureID;
     glGenTextures(1, &textureID);
@@ -272,9 +343,27 @@ uint32_t Renderer::loadTexture(char const* path)
         if (nrComponents == 1)
             format = GL_RED;
         else if (nrComponents == 3)
-            format = GL_RGB;
+        {
+            if (gammaCorrection)
+            {
+                format = GL_SRGB;
+            }
+            else
+            {
+                format = GL_RGB;
+            }
+        }
         else if (nrComponents == 4)
-            format = GL_RGBA;
+        {
+            if (gammaCorrection)
+            {
+                format = GL_SRGB_ALPHA;
+            }
+            else
+            {
+                format = GL_RGBA;
+            }
+        }
 
         glBindTexture(GL_TEXTURE_2D, textureID);
         glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, data);

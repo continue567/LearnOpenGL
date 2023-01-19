@@ -11,7 +11,7 @@
 #include <learnopengl/camera.h>
 #include <learnopengl/model.h>
 
-#include "Renderer.h"
+#include <Renderer/Renderer.h>
 
 #include <iostream>
 
@@ -283,7 +283,7 @@ int main()
         render.bindVertexArrayObject(cubeVAO);
         render.activeTexture(GL_TEXTURE0);
         render.bindTexture(GL_TEXTURE_CUBE_MAP, cubemapTexture);
-        render.drawTriangle(36);
+        render.drawTriangle(GL_TRIANGLES, 36);
         render.unBindVertexArrayObject();
 
 
@@ -309,7 +309,7 @@ int main()
         render.bindVertexArrayObject(skyboxVAO);
         render.activeTexture(GL_TEXTURE0);
         render.bindTexture(GL_TEXTURE_CUBE_MAP, cubemapTexture);
-        render.drawTriangle(36);
+        render.drawTriangle(GL_TRIANGLES, 36);
         render.unBindVertexArrayObject();
 
         // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
