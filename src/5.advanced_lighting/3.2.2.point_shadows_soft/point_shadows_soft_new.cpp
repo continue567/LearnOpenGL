@@ -129,7 +129,7 @@ int main()
         // 2. render scene as normal 
         // -------------------------
         uint32_t screenFbo = 0;
-        render.bindFBufferViewRect(screenFbo, 0, 0, SCR_WIDTH, SCR_WIDTH);
+        render.bindFBufferViewRect(screenFbo, 0, 0, SCR_WIDTH, SCR_HEIGHT);
         render.setClearFlag((uint8_t)ClearFlag::eCOLOR | (uint8_t)ClearFlag::eDEPTH, 0x191919ff);
         render.getShader("pointShadow")->use();
         glm::mat4 projection = glm::perspective(glm::radians(render.GetCameraInstance()->Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);

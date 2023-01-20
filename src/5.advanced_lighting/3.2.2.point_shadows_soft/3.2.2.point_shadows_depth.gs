@@ -10,7 +10,7 @@ void main()
 {
     for(int face = 0; face < 6; ++face)
     {
-        gl_Layer = face; // 用于指定立方体贴图的哪个面
+        gl_Layer = face; // 指定要向哪个立方体贴图面发射primitive图元 仅当fbo附着cubemap的时候有用
         for(int i = 0; i < 3; ++i) // for each triangle's vertices
         {
             FragPos = gl_in[i].gl_Position;
